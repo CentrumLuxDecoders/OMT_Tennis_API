@@ -45,7 +45,8 @@ exports.citiesbyrayon = async function (req, res, next) {
   // Checking for the Rayon is Empty
   if (rayon == "0") {
     var query =
-    "SELECT cities.Nom_commune, cities.Code_postal FROM `cities` GROUP BY Code_commune_INSEE ORDER BY cities.Nom_commune ASC";
+    "SELECT cities.Nom_commune, cities.Code_postal FROM `cities` GROUP BY cities.Nom_commune, cities.Code_postal  -- Include both columns in GROUP BY  ORDER BY cities.Nom_commune ASC";
+    // "SELECT cities.Nom_commune, cities.Code_postal FROM `cities` GROUP BY Code_commune_INSEE ORDER BY cities.Nom_commune ASC";
     await db_library
       .execute(query)
       .then(value => {
@@ -134,7 +135,7 @@ exports.getCitynameForPostalCode = async function(req, res, next) {
 
   if (postalcode != "") {
     var query =
-      "SELECT * FROM `cities` WHERE `Code_postal`='" + postalcode + "' GROUP BY Code_commune_INSEE";
+      "SELECT * FROM `cities` WHERE `Code_postal`='" + postalcode + "'";
 	console.log(query)
     await db_library
       .execute(query)

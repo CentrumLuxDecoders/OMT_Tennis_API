@@ -52,7 +52,7 @@ exports.getallBookings = async function (req, res, next) {
     //where += " OR booking_dbs.status = 'A'";
     //where += " OR booking_dbs.status = 'C'";
     var select_query = "SELECT * FROM `booking_dbs` where" + where;
-    //console.log('query '+ select_query);
+    console.log('query '+ select_query);
     await db_library
       .execute(select_query)
       .then(value => {
@@ -75,7 +75,7 @@ exports.getallBookings = async function (req, res, next) {
     where1 += " AND booking_dbs.markreadCoach = 0 ";
 
     var select_query = "SELECT * FROM `booking_dbs` where" + where1;
-    //console.log('query '+ select_query);
+    console.log('query '+ select_query);
     await db_library
       .execute(select_query)
       .then(value => {
@@ -137,7 +137,6 @@ exports.updateAllBookings = async function (req, res, next) {
     //console.log('second');
     var coach_update_query =
       "UPDATE `booking_dbs` SET `markreadCoach`=? WHERE `Coach_ID`=?;";
-
     await db_library
       .parameterexecute(coach_update_query, [
         markreadCoach,
@@ -856,6 +855,7 @@ exports.updateProfileTab2 = async function (req, res, next) {
     var query_internal =
       "SELECT Code_postal,coordonnees_gps FROM cities WHERE `Code_postal`=" +
       Coach_Ville;
+      console.log('query_internal',query_internal);
     await db_library.execute(query_internal).then(async results => {
       if (results.length > 0) {
         // If Results Greater than 0 Process the Code postal along with latitude and Longitude

@@ -155,7 +155,7 @@ exports.get_avail_ten_is_or_not = async function (req, res, next) {
 
 exports.search_for_coach = async function (req, res, next) {
   const ville = req.query.ville;
-  const date = req.query.date;
+  const date = (req.query.date==null || req.query.date==undefined || req.query.date=='null')?null:req.query.date;
   var _output = new output();
   // if (ville != "" && date != "") {
   var query = "call filtercoach('" + ville + "','" + date + "','','')";
@@ -2193,6 +2193,7 @@ async function bookedFun(arr, remaingSlotStatus, totalAmt) {
       "','" +
       remaingSlotStatus +
       "')";
+    console.log('Booking_dbsQuery',Query);
     return await db_library.execute(Query).then(async data => {
       if (data.insertId) {
         return data.insertId;
@@ -2263,7 +2264,7 @@ exports.coachReservationFun = async function (req, res, next) {
     const lastInsertId = await bookedFun(
       bookArray[0],
       P_RemaingTenStatus,
-      P_TotalAmt
+      (P_TotalAmt==undefined || P_TotalAmt=='')?null:P_TotalAmt
     );
     var dateArr = [];
     for (var i = 0; i < bookArray.length; i++) {
@@ -2339,6 +2340,7 @@ async function bookedSlotFun(bookArray, bookingID) {
       "','" +
       P_Remarks +
       "')";
+    // console.log('UpdateQuery',Query);
     return await db_library.execute(Query).then(async data => {
       return data;
     });
@@ -2501,8 +2503,21 @@ exports.getReservationDetails = async function (req, res, next) {
   const Coach_id = req.query.Coach_ID;
 
   if (Coach_id != "") {
-    var query = "select users.firstName,users.lastName,users.postalCode,booking_dbs.*,DATE_FORMAT(booking_dbs.bookingDate,'%d-%m-%Y') as bookdatefillter,cities.Nom_commune from booking_dbs  JOIN users ON  booking_dbs.user_id = users.id JOIN cities ON  users.cityId = cities.Code_commune_INSEE where booking_dbs.Coach_ID = " + Coach_id + " GROUP BY `booking_dbs`.`booking_Id` ORDER BY created_at DESC";
-    console.log(query)
+    // var query = "select users.firstName,users.lastName,users.postalCode,booking_dbs.*,DATE_FORMAT(booking_dbs.bookingDate,'%d-%m-%Y') as bookdatefillter,cities.Nom_commune from booking_dbs  JOIN users ON  booking_dbs.user_id = users.id JOIN cities ON  users.cityId = cities.Code_commune_INSEE where booking_dbs.Coach_ID = " + Coach_id + " GROUP BY `booking_dbs`.`booking_Id` ORDER BY created_at DESC";
+    var query = "SELECT";
+    query +=" MAX(users.firstName) as firstName,";
+    query += " MAX(users.lastName) as lastName,";
+    query += " MAX(users.postalCode) as postalCode,";
+    query += " booking_dbs.*,";
+    query += " DATE_FORMAT(booking_dbs.bookingDate, '%d-%m-%Y') as bookdatefillter,";
+    query += " MAX(cities.Nom_commune) as Nom_commune";
+    query += " FROM booking_dbs";
+    query += " JOIN users ON booking_dbs.user_id = users.id";
+    query += " JOIN cities ON users.cityId = cities.Code_commune_INSEE";
+    query += " WHERE booking_dbs.Coach_ID = " + Coach_id + "";
+    query += " GROUP BY `booking_dbs`.`booking_Id`";
+    query += " ORDER BY MAX(created_at) DESC";
+    console.log("querydata",query);
     await db_library
       .execute(query).then(async (value) => {
         var result = value;
@@ -3679,7 +3694,7 @@ exports.insertAvailability = async function (req, res, next) {
       "' and `CourseId`is NOT null and `CoachId`=" +
       availability[0].Coach_Id +
       "";
-    // console.log('countquery',query);
+    console.log('countquery',query);
     await db_library.execute(query).then(async data => {
       if (data[0].count == 0) {
         /**
@@ -3839,12 +3854,12 @@ exports.insertAvailability = async function (req, res, next) {
             //const values = [data.CoachId, data.hour,data.status,data.date];
             // console.log(dataSend)
             //Get Avaiablity count if already exists -  suresh
-            var checkQuery = 'SELECT count(1) as count,Id as avaiablityId FROM avaiablity where CoachId='+dataSend.CoachId+' and Date="'+dataSend.date+'" and FromDate="'+dataSend.FromDate+'" and ToDate="'+dataSend.ToDate+'" and Hour="'+dataSend.hour+'"';
+            var checkQuery = 'SELECT count(*) as count,Id as avaiablityId FROM avaiablity where CoachId='+dataSend.CoachId+' and Date="'+dataSend.date+'" and FromDate="'+dataSend.FromDate+'" and ToDate="'+dataSend.ToDate+'" and Hour="'+dataSend.hour+'" GROUP BY Id';
             // console.log('queryCh',checkQuery);
             await db_library
               .execute(checkQuery).then(async data => {
-                // console.log('countData',data[0]);
-                if (data[0].count> 0) {
+                // console.log('countData',JSON.stringify(data));
+                if (data.length>0 && data[0].count> 0) {
                     var update_query = 'UPDATE `avaiablity`';
                       update_query+=' SET';
                       update_query+=' `Hour` = ?,';
@@ -3870,14 +3885,15 @@ exports.insertAvailability = async function (req, res, next) {
                 }else{
                   //For Insert new
                     var insert_query = "INSERT INTO `avaiablity`(`CoachId`, `Hour`, `Status`, `Date`,`FromDate`,`ToDate`) VALUES (?,?,?,?,?,?);";
-                    console.log(insert_query)
+                    // console.log("insert_query",insert_query,[dataSend.CoachId, dataSend.hour, dataSend.status, dataSend.date,dataSend.FromDate,dataSend.ToDate]);
                     await db_library
                       .parameterexecute(insert_query, [dataSend.CoachId, dataSend.hour, dataSend.status, dataSend.date,dataSend.FromDate,dataSend.ToDate]).then(async (value) => {
-                      console.log(value)
+                      console.log("value",value)
                         _output.data = {  };
                         _output.isSuccess = true;
                         _output.message = "insert data ";
                       }).catch(err => {
+                        console.log('err',err);
                         _output.data = { err };
                         _output.isSuccess = false;
                         _output.message = "La mise   jour du cours individuel a  chou ";

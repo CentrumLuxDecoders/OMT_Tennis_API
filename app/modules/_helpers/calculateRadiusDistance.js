@@ -27,15 +27,18 @@ exports.calculateLocationRadius = async function(longitude, latitude, code_posta
 
 exports.calculateLocationbyrayon = async function(longitude, latitude, code_postal, rayon) {
   return new Promise(async (resolve, reject) => {
-    var query =
-      "SELECT c.Code_postal,(6371 * acos (cos ( radians(" +
-      latitude +
-      ") )* cos( radians( SUBSTRING_INDEX(c.coordonnees_gps, ',', -1) ) )* cos( radians( SUBSTRING_INDEX(c.coordonnees_gps, ',',1) ) - radians(" +
-      longitude +
-      ") )+ sin ( radians(" +
-      latitude +
-      ") )* sin( radians( SUBSTRING_INDEX(c.coordonnees_gps, ',', -1) ) ))) AS distance, c.coordonnees_gps FROM cities c GROUP BY c.Code_postal HAVING (distance > 0 AND distance <= "+ rayon +") ORDER BY distance ASC";
-    db_library.execute(query).then(value => {
+
+    var query ="SELECT *, (6371 * ACOS(COS(RADIANS("+latitude+")) * COS(RADIANS(SUBSTRING_INDEX(c.coordonnees_gps, ',', -1))) * COS(RADIANS(SUBSTRING_INDEX(c.coordonnees_gps, ',', 1) - RADIANS("+longitude+"))) + SIN(RADIANS("+latitude+")) * SIN(RADIANS(SUBSTRING_INDEX(c.coordonnees_gps, ',', -1))))) AS distance FROM cities c WHERE (6371 * ACOS(COS(RADIANS("+latitude+")) * COS(RADIANS(SUBSTRING_INDEX(c.coordonnees_gps, ',', -1))) * COS(RADIANS(SUBSTRING_INDEX(c.coordonnees_gps, ',', 1) - RADIANS("+longitude+"))) + SIN(RADIANS("+latitude+")) * SIN(RADIANS(SUBSTRING_INDEX(c.coordonnees_gps, ',', -1))))) BETWEEN 0 AND "+ rayon +" ORDER BY distance ASC";
+    // var query =
+    //   "SELECT c.Code_postal,(6371 * acos (cos ( radians(" +
+    //   latitude +
+    //   ") )* cos( radians( SUBSTRING_INDEX(c.coordonnees_gps, ',', -1) ) )* cos( radians( SUBSTRING_INDEX(c.coordonnees_gps, ',',1) ) - radians(" +
+    //   longitude +
+    //   ") )+ sin ( radians(" +
+    //   latitude +
+    //   ") )* sin( radians( SUBSTRING_INDEX(c.coordonnees_gps, ',', -1) ) ))) AS distance, c.coordonnees_gps FROM cities c GROUP BY c.Code_postal HAVING (distance > 0 AND distance <= "+ rayon +") ORDER BY distance ASC";
+    console.log('queryquery',query);
+      db_library.execute(query).then(value => {
       if (value.length > 0) {
         var postal_code = [];
         for (let index = 0; index < value.length; index++) {

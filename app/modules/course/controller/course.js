@@ -116,7 +116,8 @@ exports.getIndividualCourse = async function (req, res, next) {
     const UserId = req.query.user_id;
     let makereview = false;
     if(UserId != undefined && UserId != '' && UserId != null){
-     var query1 = "SELECT * from booking_dbs where Coach_ID = " + CoachId + "  AND user_id = " + UserId + " limit 1"
+     var query1 = "SELECT * from booking_dbs where Coach_ID = " + CoachId + "  AND user_id = " + UserId + " limit 1";
+    //  console.log('query1query1',query1);
      var review = await db_library
             .execute(query1)
       console.log(review)
@@ -128,8 +129,13 @@ exports.getIndividualCourse = async function (req, res, next) {
     }
       console.log(makereview)
     if (CoachId != undefined && Indvid != undefined) {
-        var query = "select ind.*,ci.coordonnees_gps,ci.Libelle_acheminement as Location from `individualcourses` ind INNER JOIN `cities` ci on ci.Code_postal = ind.Postalcode AND ci.Code_commune_INSEE = ind.Coach_Ville where ind.Coach_Id = " + CoachId + " AND ind.id = " + Indvid + " GROUP BY ind.id";
-
+        var query = "SELECT ind.*, ci.coordonnees_gps, ci.Libelle_acheminement as Location";
+        query+=" FROM `individualcourses` ind";
+        query+=" INNER JOIN `cities` ci ON ci.Code_postal = ind.Postalcode AND ci.Code_commune_INSEE = ind.Coach_Ville";
+        query+=" WHERE ind.Coach_Id = " + CoachId + " AND ind.id = " + Indvid + "";
+        query+=" GROUP BY ind.id, ci.coordonnees_gps, ci.Libelle_acheminement";
+        // var query = "select ind.*,ci.coordonnees_gps,ci.Libelle_acheminement as Location from `individualcourses` ind INNER JOIN `cities` ci on ci.Code_postal = ind.Postalcode AND ci.Code_commune_INSEE = ind.Coach_Ville where ind.Coach_Id = " + CoachId + " AND ind.id = " + Indvid + " GROUP BY ind.id";
+        // console.log('queryquery',query);
         await db_library
             .execute(query).then(async (value) => {
                 var result = value;
@@ -157,9 +163,13 @@ exports.getIndividualCourse = async function (req, res, next) {
             })
     }
     else {
-
-        var query = "select ind.*,ci.coordonnees_gps,ci.Libelle_acheminement as Location from `individualcourses` ind INNER JOIN `cities` ci on ci.Code_postal = ind.Postalcode AND ci.Code_commune_INSEE = ind.Coach_Ville where ind.Coach_Id = " + CoachId + " GROUP BY ind.id";
-
+        var query ="SELECT ind.*, ci.coordonnees_gps, ci.Libelle_acheminement as Location";
+        query+=" FROM `individualcourses` ind";
+        query+=" INNER JOIN `cities` ci ON ci.Code_postal = ind.Postalcode AND ci.Code_commune_INSEE = ind.Coach_Ville";
+        query+=" WHERE ind.Coach_Id = " + CoachId + "";
+        query+=" GROUP BY ind.id, ci.coordonnees_gps, ci.Libelle_acheminement";
+        // var query = "select ind.*,ci.coordonnees_gps,ci.Libelle_acheminement as Location from `individualcourses` ind INNER JOIN `cities` ci on ci.Code_postal = ind.Postalcode AND ci.Code_commune_INSEE = ind.Coach_Ville where ind.Coach_Id = " + CoachId + " GROUP BY ind.id";
+        console.log('querycouch',query);
         await db_library
             .execute(query).then(async (value) => {
                 var result = value;
@@ -1729,6 +1739,7 @@ exports.getTournamentCourse = async function (req, res, next) {
     const id = req.query.coachId;
     if (id != "") {
         var query = "SELECT DISTINCT  cd.*,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `tournament` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.Coach_Id=" + id + "";
+        console.log('ssssquery',query);
         await db_library
             .execute(query).then(async (value) => {
                 var result = value;

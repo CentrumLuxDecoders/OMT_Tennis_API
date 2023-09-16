@@ -5,11 +5,33 @@ const moment = require("moment");
 exports.getCalendar = async function(req, res, next) {
   var _output = new output();
   const Coach_ID = req.query.Coach_ID;
-console.log(Coach_ID)
+// console.log(Coach_ID)
   if (Coach_ID != "") {
     //var query = "select * from availability_dbs where Coach_id = (SELECT u.id from users u inner join coaches_dbs c on u.email=c.Coach_Email where c.Coach_ID = " + Coach_ID + ")"
-var query="SELECT * FROM `avaiablity` WHERE `CoachId` = " + Coach_ID
-// console.log(query)
+    var query="SELECT *,Hour as title,Date as start,";
+    query+=" CASE";
+    query+=" WHEN Status='Y' THEN Hour";
+    query+=" WHEN Status='R' THEN Hour";
+    query+=" WHEN Status='A' THEN Hour";
+    query+=" ELSE ''"
+    query+=" END AS title,";
+
+    query+=" CASE";
+    query+=" WHEN Status='Y' THEN Date";
+    query+=" WHEN Status='R' THEN Date";
+    query+=" WHEN Status='A' THEN Date";
+    query+=" ELSE ''"
+    query+=" END AS start,";
+
+
+    query+=" CASE";
+    query+=" WHEN Status='Y' THEN 'green'";
+    query+=" WHEN Status='R' THEN '#e75b00'";
+    query+=" WHEN Status='A' THEN 'red'";
+    query+=" ELSE ''"
+    query+=" END AS backgroundColor";
+    query+=" FROM `avaiablity` WHERE `CoachId` = " + Coach_ID;
+// console.log(query);
     await db_library
       .execute(query)
       .then(async value => {
