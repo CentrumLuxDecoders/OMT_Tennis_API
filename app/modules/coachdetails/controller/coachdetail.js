@@ -23,7 +23,7 @@ exports.bookCourse = async function(req, res, next) {
   const bookingEnd = req.body.bookingEnd;
   const reserve = req.body.reserve;
   const P_BookingCourseID  = req.body.P_BookingCourseID;
-
+  // console.log('user_Id',user_Id,"Coach_id",Coach_id,'status',status,'booking_date',booking_date,'bookingEnd',bookingEnd,'course',course,'P_BookingCourseID',P_BookingCourseID);
   if (
     user_Id != "" &&
     Coach_id != "" &&

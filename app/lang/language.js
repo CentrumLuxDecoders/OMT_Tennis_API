@@ -1,7 +1,7 @@
 exports.franchContent = {
   required_field: "Les champs obligatoires sont manquants",
   coach_availability_success: "Coach availability date Get Successfull",
-  coach_register: "L'entraîneur s'inscrit avec succès",
+  coach_register: "Inscription réussie, veuillez vérifier votre e-mail pour activer votre compte",//"L'entraîneur s'inscrit avec succès",
   insert_coach: "Inséré avec succès",
   login_success: "Connectez- vous avec succès",
   invalid_login: "Authentification invalide",

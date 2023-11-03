@@ -314,9 +314,10 @@ exports.createReviews = async function (req, res, next) {
     rating
 
   } = req.body;
-  query1 = "SELECT * FROM payment_stripe where couch_id = '" + Coach_Id + "' and stripe_customer_id = '" + User_Id + "'"
+  // query1 = "SELECT * FROM payment_stripe where couch_id = '" + Coach_Id + "' and stripe_customer_id = '" + User_Id + "'"
+  var query1 = "SELECT * from booking_dbs where Coach_ID = " + Coach_Id + "  AND user_id = " + User_Id + " AND status='B' limit 1";
   const payment = await db_library.execute(query1)
-  console.log("payment====>", payment)
+  console.log("payment====>", query1,payment)
 
   if (payment.length) {
 
@@ -606,7 +607,7 @@ exports.registerUser = async function (req, res, next) {
               .then(val => {
                 _output.data = val;
                 _output.isSuccess = true;
-                _output.message = "S'inscrire avec succès";
+                _output.message = "Inscription réussie, veuillez vérifier votre e-mail pour activer votre compte";//S'inscrire avec succès";
               })
               .catch(err => {
                 _output.data = err;

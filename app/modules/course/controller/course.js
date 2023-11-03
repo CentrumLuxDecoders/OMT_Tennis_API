@@ -80,13 +80,14 @@ exports.setIndividualCourseInsert = async function (req, res, next) {
         filename,
         address
     } = req.body;
-
+    console.log('req.body',req.body);
     if (Coach_Id != "" && Coach_Ville != "" && Postalcode != "" && Description != "" && Price_min != "" && Price_max != "" && Mode_of_Transport != "" && Plan != "" && Photo != "") {
 
         var insert_query = "INSERT INTO `individualcourses` (`Eventname`, `Coach_Id`, `Mode_of_Transport`, `Description`, `Price_min`, `Price_max`," +
             " `specialty`,`Technical_provided`, `Video`, `Plan`, `mode_of_payment`, `createdAt`, `updatedAt`,`Postalcode`,`Coach_Ville`, `Photo`, `filename`,`address`) VALUES " +
             "(?,?,?,?,?,?,?,?,?,?,?,Now(),Now(),?,?,?,?,?);";
 
+        console.log('insert_query',insert_query,JSON.stringify([Eventname, Coach_Id, Mode_of_Transport, Description, Price_min, Price_max, specialty, Technical_provided, Video, Plan, mode_of_payment, Postalcode, Coach_Ville, Photo, filename,address]));
 
         await db_library
             .parameterexecute(insert_query, [Eventname, Coach_Id, Mode_of_Transport, Description, Price_min, Price_max, specialty, Technical_provided, Video, Plan, mode_of_payment, Postalcode, Coach_Ville, Photo, filename,address]).then((value) => {
@@ -443,7 +444,7 @@ exports.setcouseCollectiveDemanad = async function (req, res, next) {
 
 
     var update_query = "Update `course_collective_if_demand` set `Min_People`=?, `Max_People`=?, `Eventname`=?, `Description`=?," +
-        "`Coach_Ville`=?, `Postalcode`=?, `Photo`=?, `Video`=?, `Mode_of_transport` =?, `mode_of_payment` =?, `specialty` =?, `Price_2pl_1hr` =?, `Price_3pl_1hr` =?, `Price_4pl_1hr` =?,`Price_5pl_1hr` =?, `Price_6pl_1hr` =?, `Price_2pl_10hr` =?, `Price_3pl_10hr` =?, `Price_4pl_10hr` =?, `Price_5pl_10hr` =?, `Price_6pl_10hr` =?, `Plan` =?, `filename` =?, `address` =?, `created_at` = NOW() where `Coach_Id` = ? AND `Group_Id`=?";
+        "`Coach_Ville`=?, `Postalcode`=?, `Photo`=?, `Video`=?, `Mode_of_transport` =?, `mode_of_payment` =?, `specialty` =?, `Price_2pl_1hr` =?, `Price_3pl_1hr` =?, `Price_4pl_1hr` =?,`Price_5pl_1hr` =?, `Price_6pl_1hr` =?, `Price_2pl_10hr` =?, `Price_3pl_10hr` =?, `Price_4pl_10hr` =?, `Price_5pl_10hr` =?, `Price_6pl_10hr` =?, `Plan` =?, `filename` =?, `address` =?  where `Coach_Id` = ? AND `Group_Id`=?";
 
     await db_library
         .execute("SELECT * FROM `course_collective_if_demand` WHERE Coach_Id=" + Coach_Id + " AND Group_Id=" + Group_Id + "").then(async (value) => {
@@ -553,7 +554,17 @@ exports.getcouseCollectiveDemanad = async function (req, res, next) {
             })
     } else {
 
-        query = "SELECT cd.*,cd.Price_2pl_1hr as Price_min,cd.Price_2pl_10hr as Price_max,ci.coordonnees_gps,ci.Libelle_acheminement as Location FROM `course_collective_if_demand` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.Coach_Id=" + Coach_Id + " GROUP BY cd.Group_Id";
+        // query = "SELECT cd.*,cd.Price_2pl_1hr as Price_min,cd.Price_2pl_10hr as Price_max,ci.coordonnees_gps,ci.Libelle_acheminement as Location FROM `course_collective_if_demand` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.Coach_Id=" + Coach_Id + " GROUP BY cd.Group_Id";
+        query = "SELECT";
+        query+=" cd.*,";
+        query+=" cd.Price_2pl_1hr as Price_min,";
+        query+=" cd.Price_2pl_10hr as Price_max,";
+        query+=" ci.coordonnees_gps,";
+        query+=" ci.Libelle_acheminement as Location";
+        query+=" FROM `course_collective_if_demand` cd";
+        query+=" INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville";
+        query+=" WHERE cd.Coach_Id=" + Coach_Id + "";
+        query+=" GROUP BY cd.Group_Id, ci.coordonnees_gps, ci.Libelle_acheminement";
         await db_library
             .execute(query).then(async (value) => {
                 if (value.length > 0) {
@@ -665,7 +676,7 @@ exports.insertCourseCollectiveClub = async function (req, res, next) {
                         } = availablity[i];
                         if (Id == "") {
                             var insert_availablity =
-                            "INSERT INTO `courseclub_availablity`(`couch_id`, `Weekday`, `StartTime`, `EndTime`, `Price`,`MaxCount`,`Course`,`Id`)" +
+                            "INSERT INTO `courseclub_availablity`(`CoachId`, `Weekday`, `StartTime`, `EndTime`, `Price`,`MaxCount`,`Course`,`Course_Id`,`Id`)" +
                             " VALUES ('" +
                             Coach_Id +
                             "','" +
@@ -680,6 +691,8 @@ exports.insertCourseCollectiveClub = async function (req, res, next) {
                             MaxCount +
                             "','" +
                             Course +
+                            "','" +
+                            course_id +
                             "','" +
                             0 +
                             "')";
@@ -687,7 +700,7 @@ exports.insertCourseCollectiveClub = async function (req, res, next) {
                         } else {
                            
                         var insert_availablity =
-                            "INSERT INTO `courseclub_availablity`(`couch_id`, `Weekday`, `StartTime`, `EndTime`, `Price`,`MaxCount`,`Course`,`Id`)" +
+                            "INSERT INTO `courseclub_availablity`(`CoachId`, `Weekday`, `StartTime`, `EndTime`, `Price`,`MaxCount`,`Course`,`Id`)" +
                             " VALUES ('" +
                             Coach_Id +
                             "','" +
@@ -702,6 +715,8 @@ exports.insertCourseCollectiveClub = async function (req, res, next) {
                             MaxCount +
                             "','" +
                             Course +
+                            "','" +
+                            course_id +
                             "','" +
                             Id +
                             "')";
@@ -1702,7 +1717,13 @@ exports.getIndividualCourseLeftMenu = async function (req, res, next) {
     const id = req.query.coachId;
 
     if (id != "") {
-        var query = "SELECT cd.*,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `individualcourses` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.Coach_Id=" + id + " GROUP BY cd.id ";
+        // var query = "SELECT cd.*,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `individualcourses` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.Coach_Id=" + id + " GROUP BY cd.id ";
+       var query = "SELECT cd.*,cd.id, MAX(ci.coordonnees_gps) AS coordonnees_gps, MAX(ci.Libelle_acheminement) AS cityname";
+       query+=" FROM `individualcourses` cd";
+       query+=" INNER JOIN `cities` ci ON ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville";
+       query+=" WHERE cd.Coach_Id ="+id+"";
+       query+=" GROUP BY cd.id"
+        // console.log('queryquery',query);
         await db_library
             .execute(query).then(async (value) => {
                 var result = value;

@@ -124,7 +124,7 @@ router.post("/admin/cmsfileupload", upload.single("upload"), function(
   }
   //var message = "";
   //var CKEditorFuncNum = 0;
-  var fileUrl = "http://172.107.175.10/images/" + req.file.filename;
+  var fileUrl = "http://108.181.203.118/images/" + req.file.filename;
   //console.log(fileUrl);
   // var data =
   //   "window.parent.CKEDITOR.tools.callFunction(" +

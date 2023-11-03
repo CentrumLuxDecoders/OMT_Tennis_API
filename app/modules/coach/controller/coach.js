@@ -252,7 +252,8 @@ exports.getallavailabilityforCoachDetail = async function (req, res, next) {
   const course = req.query.course;
   var _output = new output();
   if (course == 'CoursCollectifOndemand') {
-    var query = "call CoachCalendarWithUserInfo('" + coachId + "')";
+    var query = "call CoachCalendarWithUserInfoIndividual('" + coachId + "')";
+    // var query = "call CoachCalendarWithUserInfo('" + coachId + "')";
   } else { 
     var query = "call CoachCalendarWithUserInfoIndividual('" + coachId + "')";
   }
@@ -267,15 +268,31 @@ exports.getallavailabilityforCoachDetail = async function (req, res, next) {
        
         if (course == 'CoursCollectifOndemand') {
           results = value[0];
-          getbookingdemanddetails(coachId, value[0],course).then(async function (response) {
+          const disponibleStartDates = new Set();
+          // Create a filtered array
+          const filteredArr = results.filter(item => {
+              // Check if the title is "Disponible"
+              if (item.title === "Disponible") {
+                  // If it's "Disponible," add the start date to the Set
+                  disponibleStartDates.add(item.start);
+                  return true; // Keep the "Disponible" item
+              } else if (item.title === "Non Disponible") {
+                  // If it's "Non Disponible" and the start date is in the Set, remove it
+                  if (disponibleStartDates.has(item.start)) {
+                      return false; // Remove the "Non Disponible" item
+                  }
+              }
+              return true; // Keep all other items
+          });
+          // getbookingdemanddetails(coachId, filteredArr,course).then(async function (response) {
             // console.log('response',response);
             var obj = {
-              coach_list: response
+              coach_list: filteredArr
             };
             _output.data = obj;
             _output.isSuccess = true;
             _output.message = lang.coach_availability_success;
-          });
+          // });
         }else{
           results = value[0];
           const disponibleStartDates = new Set();
@@ -1183,7 +1200,7 @@ exports.searchByEvent = async function (req, res, next) {
         " AND MONTH(cs.to_date) >= " +
         currentMonth +
         " AND YEAR(cs.to_date) >= " +
-        currentYear + " " + where + " GROUP BY cs.id ORDER BY cs.id DESC";
+        currentYear + " " + where + " GROUP BY cs.id,ci.Libelle_acheminement ORDER BY cs.id DESC";
 
     } else if (course == "Tournament") {
       query =
@@ -1203,7 +1220,7 @@ exports.searchByEvent = async function (req, res, next) {
 
     } else {
 
-      query = "SELECT tb.id,tb.Eventname,tb.Description,tb.Mode_of_transport,tb.address,tb.Eventdetails,tb.Photo,tb.filename,tb.Plan,tb.Postalcode,tb.Coach_Id,ci.Libelle_acheminement as Location FROM team_building tb INNER join cities ci on ci.Code_commune_INSEE = tb.Coach_Ville and ci.Code_postal = tb.Postalcode INNER join users u on u.id=tb.Coach_Id  INNER join  coaches_dbs coach on coach.Coach_Email=u.email" + where + " GROUP BY tb.id ORDER BY tb.id DESC";
+      query = "SELECT tb.id,tb.Eventname,tb.Description,tb.Mode_of_transport,tb.address,tb.Eventdetails,tb.Photo,tb.filename,tb.Plan,tb.Postalcode,tb.Coach_Id,ci.Libelle_acheminement as Location FROM team_building tb INNER join cities ci on ci.Code_commune_INSEE = tb.Coach_Ville and ci.Code_postal = tb.Postalcode INNER join users u on u.id=tb.Coach_Id  INNER join  coaches_dbs coach on coach.Coach_Email=u.email" + where + " GROUP BY tb.id, ci.Libelle_acheminement ORDER BY tb.id DESC";
       ;
     }
     console.log(query);
@@ -2549,70 +2566,126 @@ exports.getReservationDetails = async function (req, res, next) {
   res.send(_output);
 }
 
+async function getBookingSlotTime(id) {
+  // try {
+  //   const Query = "SELECT * FROM `booking_slot_dbs` WHERE `booking_id` = ?";
+  //   console.log('Queryyy',Query,[id])
+  //   const data = await db_library.execute(Query, [id]);
+  //   return data;
+  // } catch (error) {
+  //   console.log('errorr',error);
+  //   return error;
+  // }
+  const Query = "SELECT * FROM `booking_slot_dbs` WHERE `booking_id` = "+id;
+  try {
+    const data = await db_library.execute(Query);
+    return data;
+  } catch (error) {
+    return error;
+    // console.error('Error:', error);
+  }
+}
+
+async function getcourse_details(data) {
+  console.log('data',data);
+  try {
+    if (data.bookingCourseID !== '' && data.bookingCourseID !== 'undefined') {
+      let query = '';
+      
+      switch (data.bookingCourse) {
+        case 'CoursIndividuel':
+          query = "SELECT cd.Postalcode, cd.Coach_Ville, ci.coordonnees_gps, ci.Libelle_acheminement as cityname FROM `individualcourses` cd INNER JOIN `cities` ci ON ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.id = "+data.bookingCourseID;
+          break;
+        case 'CoursCollectifOndemand':
+          query = "SELECT cd.Postalcode, cd.Coach_Ville, ci.coordonnees_gps, ci.Libelle_acheminement as cityname FROM `course_collective_if_demand` cd INNER JOIN `cities` ci ON ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.Group_Id = "+data.bookingCourseID;
+          break;
+        case 'CoursCollectifClub':
+          query = "SELECT cd.Postalcode, cd.Coach_Ville, ci.coordonnees_gps, ci.Libelle_acheminement as cityname FROM `couse_collective_if_club` cd INNER JOIN `cities` ci ON ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.Course_Id = "+data.bookingCourseID;
+          break;
+        case 'Stage':
+          query = "SELECT cd.Postalcode, cd.Coach_Ville, ci.coordonnees_gps, ci.Libelle_acheminement as cityname FROM `course_stage` cd INNER JOIN `cities` ci ON ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.id = "+data.bookingCourseID;
+          break;
+        case 'Tournoi':
+          query = "SELECT cd.Postalcode, cd.Coach_Ville, ci.coordonnees_gps, ci.Libelle_acheminement as cityname FROM `tournament` cd INNER JOIN `cities` ci ON ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.id = "+data.bookingCourseID;
+          break;
+        case 'TeamBuilding':
+          query = "SELECT cd.Postalcode, cd.Coach_Ville, ci.coordonnees_gps, ci.Libelle_acheminement as cityname FROM `team_building` cd INNER JOIN `cities` ci ON ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.id = "+data.bookingCourseID;
+          break;
+        case 'Animation':
+          query = "SELECT cd.Postalcode, cd.Coach_Ville, ci.coordonnees_gps, ci.Libelle_acheminement as cityname FROM `animations` cd INNER JOIN `cities` ci ON ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE = cd.Coach_Ville WHERE cd.id = "+data.bookingCourseID;
+          break;
+        default:
+          return [];
+      }
+      // console.log('query',query,data.bookingCourseID);
+      const response = await db_library.execute(query);
+      return response;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    return error;
+  }
+}
+
+// exports.getReservations = async function (req, res, next) {
+//   try {
+//     const Coach_id = req.query.Coach_ID;
+
+//     if (Coach_id) {
+//       const Qry = `
+//         SELECT booking_Id, bookingCourseID, BookingTime, Coach_ID, amount, bookingCourse, d.CourseName, 
+//           DATE_FORMAT(bookingDate, '%Y-%m-d') AS bookingDate, discount_club, paymentStatus, payment_Id, 
+//           status, user_Id, u.firstName, u.lastName, s.Remarks, s.remaingSlotStatus
+//         FROM booking_dbs s
+//         INNER JOIN course_dbs d ON s.bookingCourse = d.Course_Shotname
+//         INNER JOIN users u ON s.user_Id = u.id
+//         WHERE Coach_Id = ?`;
+
+//       const bookings = await db_library.execute(Qry, [Coach_id]);
+
+//       if (bookings.length > 0) {
+//         const bookingIds = bookings.map((booking) => booking.booking_Id);
+//         const slots = await Promise.all(bookingIds.map((id) => getBookingSlotTime(id)));
+//         const courseDetails = await Promise.all(bookings.map((booking) => getcourse_details(booking)));
+
+//         const result = bookings.map((booking, index) => ({
+//           ...booking,
+//           slot: slots[index],
+//           courseDetails: courseDetails[index],
+//         }));
+
+//         res.send({
+//           data: { booking: result },
+//           isSuccess: true,
+//           message: "Soyez réussi",
+//         });
+//       } else {
+//         res.send({
+//           data: { booking: [] },
+//           isSuccess: true,
+//           message: "Aucun enregistrement trouvé",
+//         });
+//       }
+//     } else {
+//       res.send({
+//         data: lang.required_field,
+//         isSuccess: false,
+//         message: "Échec",
+//       });
+//     }
+//   } catch (error) {
+//     res.status(500).send({
+//       data: {},
+//       isSuccess: false,
+//       message: "Échec",
+//     });
+//   }
+// };
+
 exports.getReservations = async function (req, res, next) {
   var _output = new output();
   const Coach_id = req.query.Coach_ID;
-  async function getBookingSlotTime(id) {
-    try {
-      const Query =
-        "SELECT * FROM `booking_slot_dbs` WHERE `booking_id`= '" + id + "'";
-      return await db_library.execute(Query).then(async data => {
-        return data;
-      });
-    } catch (error) {
-      return error;
-    }
-  }
-
-  async function getcourse_details(data) {
-
-    try {
-
-      if (data.bookingCourseID != '' && data.bookingCourseID != 'undefined') {
-
-        if (data.bookingCourse == 'CoursIndividuel') {
-
-          var query = "SELECT cd.Postalcode,cd.Coach_Ville,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `individualcourses` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE= cd.Coach_Ville WHERE cd.id=" + data.bookingCourseID + "";
-
-        } else if (data.bookingCourse == 'CoursCollectifOndemand') {
-
-          var query = "SELECT cd.Postalcode,cd.Coach_Ville,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `course_collective_if_demand` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE= cd.Coach_Ville WHERE cd.Group_Id=" + data.bookingCourseID + "";
-
-        } else if (data.bookingCourse == 'CoursCollectifClub') {
-
-          var query = "SELECT cd.Postalcode,cd.Coach_Ville,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `couse_collective_if_club` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE= cd.Coach_Ville WHERE cd.Course_Id=" + data.bookingCourseID + "";
-
-        } else if (data.bookingCourse == 'Stage') {
-
-          var query = "SELECT cd.Postalcode,cd.Coach_Ville,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `course_stage` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE= cd.Coach_Ville WHERE cd.id=" + data.bookingCourseID + "";
-
-        } else if (data.bookingCourse == 'Tournoi') {
-
-          var query = "SELECT cd.Postalcode,cd.Coach_Ville,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `tournament` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE= cd.Coach_Ville WHERE cd.id=" + data.bookingCourseID + "";
-
-        } else if (data.bookingCourse == 'TeamBuilding') {
-
-          var query = "SELECT cd.Postalcode,cd.Coach_Ville,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `team_building` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE= cd.Coach_Ville WHERE cd.id=" + data.bookingCourseID + "";
-
-        } else if (data.bookingCourse == 'Animation') {
-
-          var query = "SELECT cd.Postalcode,cd.Coach_Ville,ci.coordonnees_gps,ci.Libelle_acheminement as cityname FROM `animations` cd INNER JOIN `cities` ci on ci.Code_postal = cd.Postalcode AND ci.Code_commune_INSEE= cd.Coach_Ville WHERE cd.id=" + data.bookingCourseID + "";
-
-        }
-        return await db_library.execute(query).then(async response => {
-          return response;
-        });
-
-      } else {
-        return [];
-      }
-
-    } catch (error) {
-      return error;
-    }
-
-  }
-
   if (Coach_id != "") {
     var Qry =
       `select booking_Id,bookingCourseID,BookingTime,Coach_ID,amount,bookingCourse, d.CourseName,(select DATE_FORMAT(bookingDate, '%Y-%m-%d')) as bookingDate,discount_club,paymentStatus,payment_Id,status,user_Id, u.firstName, u.lastName,s.Remarks, s.remaingSlotStatus from booking_dbs s
@@ -2656,6 +2729,7 @@ exports.getReservations = async function (req, res, next) {
   }
   res.send(_output);
 };
+
 
 exports.getReservation = async function (req, res, next) {
   var _output = new output();
